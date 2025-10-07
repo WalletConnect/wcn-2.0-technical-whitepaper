@@ -1,0 +1,203 @@
+\documentclass[10pt,twocolumn]{article}
+
+% Page layout
+\usepackage[
+    letterpaper,
+    top=1in,
+    bottom=1in,
+    left=0.75in,
+    right=0.75in,
+    columnsep=0.25in
+]{geometry}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Font (optional: use Latin Modern for clean look)
+\usepackage{lmodern}
+
+% Section formatting
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+}
+
+% Title and author information
+\title{\textbf{Your Paper Title: A Two-Column Scientific Paper Template}}
+
+\author{
+    Your Name\thanks{Corresponding author: email@example.com} \\
+    \textit{Institution Name} \\
+    \textit{Department} \\
+    \texttt{your.email@institution.edu}
+    \and
+    Co-Author Name \\
+    \textit{Another Institution} \\
+    \texttt{coauthor@institution.edu}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This is a two-column scientific paper template designed to mimic the style of academic whitepapers. The abstract provides a concise summary of the paper's contributions, methodology, and key findings. It should be approximately 150-250 words and give readers a clear understanding of what the paper presents. This template includes common features like mathematical equations, figures, tables, algorithms, and proper citation formatting.
+\end{abstract}
+
+\section{Introduction}
+
+This template provides a clean, professional two-column layout suitable for scientific papers, technical whitepapers, and academic publications. The format is commonly used in computer science, mathematics, and engineering fields.
+
+The introduction should provide context for your work, explain the problem you're addressing, and outline your contributions. You can cite related work like this \cite{example2023}.
+
+\subsection{Motivation}
+
+Explain why this work is important and what gap it fills in existing research. Use subsections to organize your content clearly.
+
+\subsection{Contributions}
+
+List your main contributions:
+\begin{itemize}
+    \item First major contribution
+    \item Second major contribution
+    \item Third major contribution
+\end{itemize}
+
+\section{Background and Related Work}
+
+Discuss relevant background material and prior research. Compare your approach to existing work and explain how your contribution differs or improves upon previous methods \cite{relatedwork2022}.
+
+\subsection{Technical Background}
+
+Provide necessary technical background. You can include mathematical notation:
+
+\begin{equation}
+    E = mc^2
+\end{equation}
+
+Or more complex equations:
+
+\begin{equation}
+    \frac{\partial u}{\partial t} = \nabla^2 u + f(x,t)
+\end{equation}
+
+\section{Methodology}
+
+Describe your approach in detail. This section should be technical and precise.
+
+\subsection{Problem Formulation}
+
+Define the problem formally. For example, given a set $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, we aim to find:
+
+\begin{equation}
+    \theta^* = \arg\min_{\theta} \sum_{i=1}^{n} \mathcal{L}(f_\theta(x_i), y_i)
+\end{equation}
+
+where $\mathcal{L}$ is the loss function and $f_\theta$ is our model parameterized by $\theta$.
+
+\subsection{Algorithm Description}
+
+Present your algorithm clearly. You can use the algorithm environment:
+
+\begin{algorithm}
+\caption{Example Algorithm}
+\begin{algorithmic}[1]
+\Require Input data $X$, parameters $\theta$
+\Ensure Optimized parameters $\theta^*$
+\State Initialize $\theta \gets \theta_0$
+\For{$t = 1$ to $T$}
+    \State Compute gradient $g_t \gets \nabla_\theta \mathcal{L}(\theta)$
+    \State Update $\theta \gets \theta - \alpha g_t$
+\EndFor
+\State \Return $\theta$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Experimental Results}
+
+Present your experimental setup and results.
+
+\subsection{Experimental Setup}
+
+Describe your experimental environment, datasets, and evaluation metrics.
+
+\subsection{Results}
+
+Present your results with tables and figures. Table~\ref{tab:results} shows example results.
+
+\begin{table}[h]
+\centering
+\caption{Comparison of Methods}
+\label{tab:results}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Method & Accuracy & Time (ms) \\
+\midrule
+Baseline & 85.3\% & 120 \\
+Method A & 89.7\% & 95 \\
+Method B & 91.2\% & 110 \\
+\textbf{Our Method} & \textbf{93.5\%} & \textbf{88} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+You can reference figures that you place in the \texttt{figures/} directory:
+
+% Uncomment when you have a figure:
+% \begin{figure}[t]
+% \centering
+% \includegraphics[width=\columnwidth]{figures/example.pdf}
+% \caption{Example figure showing results visualization.}
+% \label{fig:example}
+% \end{figure}
+
+\subsection{Analysis}
+
+Analyze your results and explain what they mean. Compare to baselines and discuss statistical significance.
+
+\section{Discussion}
+
+Discuss the implications of your results, limitations of your approach, and potential future work.
+
+\subsection{Limitations}
+
+Be honest about limitations:
+\begin{itemize}
+    \item First limitation
+    \item Second limitation
+\end{itemize}
+
+\subsection{Future Work}
+
+Outline potential directions for future research.
+
+\section{Conclusion}
+
+Summarize your work and its contributions. Restate the key findings and their significance to the field.
+
+\section*{Acknowledgments}
+
+Thank funding sources, collaborators, and others who contributed to the work.
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
