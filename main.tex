@@ -122,6 +122,15 @@ Clusterization does improve operation execution latency, however it also reduces
 To overcome this the clusterization is being constrained in a way so the deployments are not located too close to each other.
 The factor of clusterization is the target network latency beetwen regional deployments being in the 30-50ms range.
 
+\subsection{Node Heterogenization}
+
+WCN 1.0 nodes were homogeneous, performing replication coordination, data storage/retrieval and consensus management.
+With this design horizontal scaling was only possible via adding more stateful nodes into the network, which required data rebalancing.
+Node upgrades were also non-trivial, requiring a separate orchestration machinery to make sure that only limited amount of nodes were offline at any given time. 
+
+In WCN 2.0 the storage logic that interacts with the filesystem has been extracted into a separate executable.
+This change made WCN nodes stateless, simplifying horizontal scaling and upgrades.
+
 \subsection{Blockchain Consensus Layer}
 
 WCN 2.0 replaces Raft with a custom blockchain-based consensus mechanism. Each state transition (write, delete, region promotion) is encoded as a transaction and appended to the blockchain. Nodes validate transactions against the current state and achieve consensus through the blockchain's consensus protocol.
@@ -135,21 +144,6 @@ The blockchain serves multiple purposes:
 \end{itemize}
 
 The consensus protocol achieves finality within 2-3 seconds under normal operation, with transaction throughput sufficient for WalletConnect's write-light workload (typically $<$100 writes/second globally).
-
-\subsection{Coordinator-Database Separation}
-
-WCN 2.0 disaggregates functionality into two distinct components:
-
-\textbf{WCN Node (Coordinator):} Maintains the blockchain ledger, participates in consensus, and coordinates state transitions. Coordinators are stateless except for the blockchain itself, making them lightweight and horizontally scalable.
-
-\textbf{WCN Database (Storage):} Stores the actual key-value data and serves read queries. Databases subscribe to the blockchain to maintain eventually consistent state and can scale independently of coordinators.
-
-This separation provides several operational benefits:
-\begin{itemize}
-    \item \textbf{Independent upgrades}: Database and coordinator deployments are decoupled, reducing deployment risk
-    \item \textbf{Elastic storage scaling}: Additional database replicas can be added without affecting consensus
-    \item \textbf{Fault isolation}: Database failures do not impact consensus, and vice versa
-\end{itemize}
 
 \subsection{Coordinator Decentralization}
 
