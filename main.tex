@@ -107,44 +107,20 @@ WCN 2.0's approach to regionalized quorums differs by making regional vs. global
 
 \section{Architecture}
 
-WCN 2.0 introduces three major architectural changes: regionalized quorums, blockchain-based consensus, and separation of coordinator and database roles. This section describes each component in detail.
+WCN 2.0 introduces three major architectural changes: regional clusterization, node heterogenization and Smart-Contract-based consensus. This section describes each of these changes in detail.
 
-\subsection{Regionalized Quorum Model}
+\subsection{Regional Clusterization}
 
-In WCN 1.0, all writes were replicated globally across all nodes, ensuring strong consistency but introducing unnecessary latency for region-specific workloads. WCN 2.0 implements a flexible quorum system where writes can be committed to either a regional quorum or a global quorum depending on the access pattern.
+In WCN 1.0 all storage operations were replicated to global replica sets. A replica set consisted of 3 nodes, one node per geographic region.
+Both reads and writes required a majority quorum within the replica set to be considered successful. 
+This approach provided strong consistency and fault tolerance, however operation execution latencies were sub-optimal for region-specific workloads.
+Addition of new regions to the network wasn't trivial, as that required cross-regional data rebalancing.
 
-For a system with $R$ regions and $N$ total nodes, let $N_r$ denote the number of nodes in region $r$. A regional quorum for region $r$ requires:
-
-\begin{equation}
-    Q_r = \left\lfloor \frac{N_r}{2} \right\rfloor + 1
-\end{equation}
-
-nodes within that region, while a global quorum requires:
-
-\begin{equation}
-    Q_g = \left\lfloor \frac{N}{2} \right\rfloor + 1
-\end{equation}
-
-nodes across all regions.
-
-The system automatically promotes regional writes to global writes when cross-region access is detected, maintaining consistency while optimizing for common-case latency. This promotion mechanism is described in Algorithm~\ref{alg:quorum}.
-
-\begin{algorithm}
-\caption{Regionalized Quorum Write Protocol}
-\label{alg:quorum}
-\begin{algorithmic}[1]
-\Require Key $k$, value $v$, client region $r_c$
-\Ensure Value written with appropriate quorum
-\State $r_k \gets$ GetKeyRegion($k$)
-\If{$r_k = \textsc{null}$ \textbf{or} $r_k = r_c$}
-    \State WriteRegional($k$, $v$, $r_c$, $Q_{r_c}$)
-    \State SetKeyRegion($k$, $r_c$)
-\Else
-    \State PromoteToGlobal($k$)
-    \State WriteGlobal($k$, $v$, $Q_g$)
-\EndIf
-\end{algorithmic}
-\end{algorithm}
+WCN 2.0 splits the network into regional clusters. All nodes within a regional cluster are topologically (and usually geographically) co-located.
+Replication factor has also been increased to 5, meaning replica sets now consist of 5 independent storage backends.
+Clusterization does improve operation execution latency, however it also reduces the fault tolerance of the network making it more susceptible to natural and infrastructural disasters.
+To overcome this the clusterization is being constrained in a way so the deployments are not located too close to each other.
+The factor of clusterization is the target network latency beetwen regional deployments being in the 30-50ms range.
 
 \subsection{Blockchain Consensus Layer}
 
