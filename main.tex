@@ -107,9 +107,9 @@ WCN 2.0's approach to regionalized quorums differs by making regional vs. global
 
 \section{Architecture}
 
-WCN 2.0 introduces three major architectural changes: regional clusterization, node heterogenization and Smart-Contract-based consensus. This section describes each of these changes in detail.
+WCN 2.0 introduces three major architectural changes: regional clusters, heterogeneous nodes and Smart-Contract-based consensus. This section describes each of these changes in detail.
 
-\subsection{Regional Clusterization}
+\subsection{Regional Clusters}
 
 In WCN 1.0 all storage operations were replicated to global replica sets. A replica set consisted of 3 nodes, one node per geographic region.
 Both reads and writes required a majority quorum within the replica set to be considered successful. 
@@ -122,34 +122,31 @@ Clusterization does improve operation execution latency, however it also reduces
 To overcome this the clusterization is being constrained in a way so the deployments are not located too close to each other.
 The factor of clusterization is the target network latency beetwen regional deployments being in the 30-50ms range.
 
-\subsection{Node Heterogenization}
+\subsection{Heterogeneous Nodes}
 
 WCN 1.0 nodes were homogeneous, performing replication coordination, data storage/retrieval and consensus management.
 With this design horizontal scaling was only possible via adding more stateful nodes into the network, which required data rebalancing.
 Node upgrades were also non-trivial, requiring a separate orchestration machinery to make sure that only limited amount of nodes were offline at any given time. 
 
 In WCN 2.0 the storage logic that interacts with the filesystem has been extracted into a separate executable.
-This change made WCN nodes stateless, simplifying horizontal scaling and upgrades.
+This change made majority of WCN nodes stateless, simplifying horizontal scaling and upgrades.
 
-\subsection{Blockchain Consensus Layer}
+\subsection{Smart-Contract-based Consensus}
 
-WCN 2.0 replaces Raft with a custom blockchain-based consensus mechanism. Each state transition (write, delete, region promotion) is encoded as a transaction and appended to the blockchain. Nodes validate transactions against the current state and achieve consensus through the blockchain's consensus protocol.
+WCN 2.0 replaces Raft with a Smart-Contract-based consensus layer.
+For each regional cluster a separate Smart-Contract instance is being deployed on the Optimism chain.
+Nodes use the on-chain state as the source of truth regarding the current configuration of the cluster.
 
-The blockchain serves multiple purposes:
+The Smart-Contact logic is responsible for management of the following:
 \begin{itemize}
-    \item \textbf{Tamper-evident audit trail}: All state changes are cryptographically linked, making unauthorized modifications detectable
-    \item \textbf{Leaderless coordination}: No single leader is required, reducing operational complexity and eliminating leader election overhead
-    \item \textbf{Byzantine fault tolerance}: The blockchain consensus naturally handles Byzantine failures, strengthening security in a federated environment
-    \item \textbf{Path to permissionless}: Blockchain-based consensus is a natural fit for eventual permissionless operation
+    \item \textbf{Permissions}: Each organization operating WCN nodes must have an on-chain record within the scope of the regional cluster Smart-Contract.
+    Creation and removal of these records effectively manage the permissions of which deployments are allowed to communicate with other deployments in the cluster.
+    \item \textbf{Service discovery}: Node operators can update their on-chain state in order to specify the current list of the nodes they host, IP addresses of their deployments, public keys, etc.
+    \item \textbf{Data rebalancing}: Each time a node operator deployment is being added or removed the data needs to be rebalanced within the cluster.
+    The progress of this rebalancing is being tracked within the Smart-Contract state. 
+    \item \textbf{Maintenance}: When a node operator needs to perform a disruptive infrastructural change, which makes their deployment temporary unavailable,
+    they must trigger a Smart-Contract call to notify the cluster about it. The Smart-Contract here acts as a semaphore limiting how many deployments can be under maintenance at any given time. 
 \end{itemize}
-
-The consensus protocol achieves finality within 2-3 seconds under normal operation, with transaction throughput sufficient for WalletConnect's write-light workload (typically $<$100 writes/second globally).
-
-\subsection{Coordinator Decentralization}
-
-WCN 2.0 expands the coordinator set from 5 operators in WCN 1.0 to over 20 independent operators distributed across 8+ geographic regions. Each operator runs one or more coordinator nodes that participate in blockchain consensus.
-
-The expanded operator set improves resilience in two ways: (1) no single operator controls enough nodes to unilaterally affect consensus, and (2) geographic distribution ensures the system remains available even during regional network partitions or infrastructure failures.
 
 \section{Performance and Benefits}
 
