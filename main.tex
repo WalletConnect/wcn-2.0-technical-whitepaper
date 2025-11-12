@@ -252,15 +252,138 @@ The final stage of migration involves retiring the legacy system. Once all consu
 
 \section{Updated Reward System}
 
-WCN 2.0 introduces an updated reward mechanism for node operators that better aligns incentives with system health and performance. The new system incorporates several improvements over WCN 1.0:
+WCN 2.0 introduces a revised reward mechanism that directly links operator compensation to network performance and service quality.
+The goal is to establish a quantitative and transparent scoring system that rewards nodes for reliability and low latency, while penalizing instability or degradation in performance.
 
-\textbf{Performance-based rewards}: Operator rewards are adjusted based on node uptime, latency performance, and consensus participation. Operators with consistent high performance receive proportionally higher rewards.
+\subsection*{Goal}
+Produce a monthly score $S_{\text{node}} \in [0,1]$ that strongly penalizes drops in success rate and accounts for latency.
+This normalized score determines each operator's share of the monthly reward allocation.
 
-\textbf{Token-price-adjusted rewards}: To maintain stable incentives in the face of token price volatility, rewards are dynamically adjusted based on a moving average of token price over the previous 30 days. This ensures operators receive consistent economic value regardless of short-term price fluctuations.
+\subsection{Objective}
+The system defines a fair, continuous scoring function balancing two core dimensions:
+\begin{itemize}
+    \item \textbf{Reliability} --- measured as the node's success rate $s$,
+    \item \textbf{Performance} --- measured as the node's average latency $L$.
+\end{itemize}
 
-\textbf{Geographic diversity incentives}: Additional rewards are allocated to operators in underserved regions to encourage global distribution. This strengthens network resilience and reduces latency for users worldwide.
+The resulting score maps directly to monthly rewards:
+\begin{itemize}
+    \item $S_{\text{node}} = 1.0 \rightarrow$ full reward,
+    \item $S_{\text{node}} = 0.0 \rightarrow$ no reward.
+\end{itemize}
+This mechanism ensures high-performing nodes earn proportionally higher rewards, aligning incentives with overall network health.
 
-The specific reward formula and distribution parameters are subject to ongoing governance and may be adjusted based on operational experience and community feedback.
+\subsection{Metric Definitions}
+The reward system relies on two fundamental metrics, measured during each evaluation period.
+
+\textbf{Latency.}
+For a given period, latency represents the average response time for relay requests handled by a node:
+\[
+L = \frac{\sum_{i=1}^{N} t_i}{N}
+\]
+where $t_i$ is the response time of the $i$-th request and $N$ is the total number of relay requests.
+This expresses the mean time (in milliseconds) a node takes to respond to incoming requests.
+
+\textbf{Success Rate.}
+Success rate measures the node's reliability over the same period:
+\[
+s = \frac{N_{\text{success}}}{N_{\text{total}}}
+\]
+where $N_{\text{success}}$ is the number of successfully completed relay requests and $N_{\text{total}}$ is the total number of requests received.
+A success rate of $1.0$ corresponds to perfect reliability (no failed requests).
+
+\subsection{Success Rate Component}
+To strongly penalize reliability drops, the success-rate score follows an exponential decay:
+\[
+S_{\text{succ}}(s) =
+\begin{cases}
+0, & s < s_{\text{min}} \\
+s^{\gamma}, & s \geq s_{\text{min}}
+\end{cases}
+\]
+Parameters:
+\begin{itemize}
+    \item $s_{\text{min}}$: minimum acceptable success rate (e.g., $0.90$),
+    \item $\gamma > 1$: exponent controlling penalty steepness; $\gamma = 2$ (mild), $\gamma \geq 3$ (strong).
+\end{itemize}
+If a node's success rate drops below $s_{\text{min}}$, it receives no rewards for that period.
+
+\subsection{Latency Component}
+Let $L$ denote the node's average latency during the period, and define:
+\begin{itemize}
+    \item $L_{\min}$: ideal latency (e.g., $\leq 100$ ms),
+    \item $L_{\max}$: maximum acceptable latency (e.g., $1000$ ms).
+\end{itemize}
+The latency score decreases linearly as latency increases:
+\[
+S_{\text{lat}}(L) =
+\begin{cases}
+1, & L \leq L_{\min} \\
+\frac{L_{\max} - L}{L_{\max} - L_{\min}}, & L_{\min} < L < L_{\max} \\
+0, & L \geq L_{\max}
+\end{cases}
+\]
+This provides a simple, interpretable trade-off between speed and fairness across heterogeneous regions.
+
+\subsection{Combined Node Score}
+The node's overall performance score combines reliability and latency components.
+
+\paragraph{Product form (default).}
+\[
+S_{\text{node}} = S_{\text{succ}}(s) \times S_{\text{lat}}(L)
+\]
+
+\paragraph{Weighted geometric mean (optional).}
+\[
+S_{\text{node}} =
+\big(S_{\text{succ}}(s)\big)^{w_s}
+\big(S_{\text{lat}}(L)\big)^{w_l},
+\qquad w_s, w_l > 0,\; w_s + w_l = 1
+\]
+A typical configuration uses $w_s = 0.7$ and $w_l = 0.3$, prioritizing success rate while still accounting for latency.
+
+\subsection{Reward Mapping}
+Rewards are distributed proportionally to the node score:
+\[
+R_{\text{node}} = S_{\text{node}} \times R_{\max}
+\]
+where $R_{\max}$ is the maximum monthly reward allocation per node (derived from the total operator rewards budget divided by the number of active operators).
+
+\subsection{Example}
+Using parameters $\gamma = 3$, $L_{\min} = 100$, $L_{\max} = 1000$, $w_s = 0.7$, $w_l = 0.3$:
+
+\begin{description}
+    \item[\textbf{Node A:}] $s = 0.99$, $L = 200$\,ms \\
+    $S_{\text{succ}} = 0.99^3 \approx 0.97$, \quad
+    $S_{\text{lat}} = \dfrac{1000 - 200}{900} \approx 0.89$ \\
+    \textit{Product:} $S_{\text{node}} = 0.97 \times 0.89 \approx 0.86$ \\
+    \textit{Weighted:} $S_{\text{node}} = 0.99^{0.7} \times 0.89^{0.3} \approx 0.95$ \\
+    $\Rightarrow$ Node~A earns approximately 86--95\% of its maximum reward.
+    \vspace{0.5em}
+    \item[\textbf{Node B:}] $s = 0.95$, $L = 800$\,ms \\
+    $S_{\text{succ}} = 0.95^3 \approx 0.86$, \quad
+    $S_{\text{lat}} = \dfrac{1000 - 800}{900} \approx 0.22$ \\
+    \textit{Product:} $S_{\text{node}} = 0.86 \times 0.22 \approx 0.19$ \\
+    \textit{Weighted:} $S_{\text{node}} = 0.86^{0.7} \times 0.22^{0.3} \approx 0.65$ \\
+    $\Rightarrow$ Node~B earns approximately 19--65\% of its maximum reward.
+\end{description}
+This formulation ensures that small reliability drops or elevated latency produce strong reward penalties, preserving service quality across regions.
+
+\subsection{Governance and Adjustments}
+All parameters --- including $s_{\min}$, $\gamma$, latency thresholds, and weighting factors --- are subject to governance calibration based on real network data.
+Future governance proposals may introduce dynamic parameter tuning or adaptive weighting per region to reflect infrastructure variability.
+
+\subsection{Budget Policy}
+The operator rewards budget will be reviewed and adjusted quarterly through governance to mitigate fluctuations in infrastructure costs and token price volatility.
+This ensures the economic sustainability of node operations while maintaining predictable incentives across varying market conditions.
+
+Quarterly recalibration allows the network to balance:
+\begin{itemize}
+    \item rising infrastructure or hosting costs,
+    \item token price appreciation or depreciation,
+    \item changes in the total number of active operators.
+\end{itemize}
+The objective is to preserve consistent real-value rewards and long-term operator participation regardless of short-term market movements.
 
 \section{Future Work}
 
