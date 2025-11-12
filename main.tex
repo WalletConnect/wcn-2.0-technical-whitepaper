@@ -112,7 +112,7 @@ WCN 2.0 introduces three major architectural changes: regional clusters, heterog
 \subsection{Regional Clusters}
 
 In WCN 1.0 all storage operations were replicated to global replica sets. A replica set consisted of 3 nodes, one node per geographic region.
-Both reads and writes required a majority quorum within the replica set to be considered successful. 
+Both reads and writes required a majority quorum within the replica set to be considered successful.
 This approach provided strong consistency and fault tolerance, however operation execution latencies were sub-optimal for region-specific workloads.
 Addition of new regions to the network wasn't trivial, as that required cross-regional data rebalancing.
 
@@ -126,7 +126,7 @@ The factor of clusterization is the target network latency beetwen regional depl
 
 WCN 1.0 nodes were homogeneous, performing replication coordination, data storage/retrieval and consensus management.
 With this design horizontal scaling was only possible via adding more stateful nodes into the network, which required data rebalancing.
-Node upgrades were also non-trivial, requiring a separate orchestration machinery to make sure that only limited amount of nodes were offline at any given time. 
+Node upgrades were also non-trivial, requiring a separate orchestration machinery to make sure that only limited amount of nodes were offline at any given time.
 
 In WCN 2.0 the storage logic that interacts with the filesystem has been extracted into a separate executable.
 This change made majority of WCN nodes stateless, simplifying horizontal scaling and upgrades.
@@ -143,9 +143,9 @@ The Smart-Contact logic is responsible for management of the following:
     Creation and removal of these records effectively manage the permissions of which deployments are allowed to communicate with other deployments in the cluster.
     \item \textbf{Service discovery}: Node operators can update their on-chain state in order to specify the current list of the nodes they host, IP addresses of their deployments, public keys, etc.
     \item \textbf{Data rebalancing}: Each time a node operator deployment is being added or removed the data needs to be rebalanced within the cluster.
-    The progress of this rebalancing is being tracked within the Smart-Contract state. 
+    The progress of this rebalancing is being tracked within the Smart-Contract state.
     \item \textbf{Maintenance}: When a node operator needs to perform a disruptive infrastructural change, which makes their deployment temporary unavailable,
-    they must trigger a Smart-Contract call to notify the cluster about it. The Smart-Contract here acts as a semaphore limiting how many deployments can be under maintenance at any given time. 
+    they must trigger a Smart-Contract call to notify the cluster about it. The Smart-Contract here acts as a semaphore limiting how many deployments can be under maintenance at any given time.
 \end{itemize}
 
 \section{Performance and Benefits}
@@ -198,17 +198,57 @@ WCN 2.0's decentralized architecture provides several security advantages:
 
 \section{Hardfork Migration Strategy}
 
-Migration from WCN 1.0 to WCN 2.0 requires careful coordination to maintain service availability during the transition. The migration follows a phased approach:
+In WCN, every record is subject to a maximum time-to-live (TTL) of 30 days. This constraint effectively transforms migration from a stateful data transfer problem into a controlled process of state convergence, where only live records are relevant. After one complete cycle of shadowing, the new storage will have fully converged with the legacy system, enabling a seamless transition without manual data migration.
 
-\textbf{Phase 1 - Parallel Operation}: WCN 2.0 coordinators are deployed alongside WCN 1.0 infrastructure. Both systems operate independently with shadow writes to WCN 2.0 to build up state and validate correctness.
+\subsection*{Phase 1 - WCN 2.0 Initial Deployment}
 
-\textbf{Phase 2 - Progressive Traffic Shift}: Client traffic is gradually shifted from WCN 1.0 to WCN 2.0 in regional increments (e.g., 5\%, 25\%, 50\%, 100\%). Monitoring validates latency improvements and error rates at each stage.
+The migration begins with a controlled rollout of WCN 2.0 under WalletConnect’s direct operation
 
-\textbf{Phase 3 - State Reconciliation}: Any state divergence between systems is identified and reconciled. The blockchain's audit trail facilitates debugging of discrepancies.
+\begin{itemize}
+    \item All nodes operated by WalletConnect: To ensure stability and consistency during the initial deployment, all participating nodes are managed centrally. This greatly simplifies monitoring, profiling and deploying updates to the cluster as needed.
+    \item EU cluster acts as global: A single cluster deployed to one of the Central European datacenters is designated as the global cluster, serving as the authoritative source of truth for all records.
+    \item Begin shadowing writes: Incoming writes are duplicated into the WCN 2.0 cluster while continuing to serve consumers from WCN 1.0. This allows validation of write-path correctness without impacting production traffic and begins the 30-day period of state convergence.
+    \item Performance Profiling: Latency, throughput, and consistency metrics are collected to evaluate the behavior of WCN 2.0 under production-like workloads.
+\end{itemize}
 
-\textbf{Phase 4 - Cutover}: Once WCN 2.0 handles 100\% of traffic successfully for a sustained period (e.g., 7 days), WCN 1.0 infrastructure is decommissioned.
+\subsection*{Phase 2 - Inviting Third Parties into the Network}
 
-The migration is designed to be reversible until Phase 4, allowing rollback if critical issues emerge.
+Once the system demonstrates stability under WalletConnect's operation, external participants are gradually invited.
+
+\begin{itemize}
+    \item Controlled Onboarding: Third-party operators are integrated into the cluster under strict governance to ensure adherence to protocol specifications.
+    \item Data Migrations within the Cluster: As new nodes join, the data stored in the system is redistributed among the nodes to rebalance the keyspace and ensure uniform load across the cluster.
+\end{itemize}
+
+\subsection*{Phase 3 - Shadowing Reads}
+
+After increasing the network capacity by adding enough third party operators, the migration progresses to shadowing reads:
+
+\begin{itemize}
+    \item Gradual Enablement: The amount of consumer read requests is gradually increased, while monitoring the network's performance.
+    \item Continuous Profiling: Read-path performance is analyzed to detect potential bottlenecks or divergence in state.
+\end{itemize}
+
+\subsection*{Phase 4 - Switching Consumers to WCN 2.0 Global Cluster}
+
+When monitoring confirms that there are no outstanding issues remain, and no state divergence exists between WCN 1.0 and WCN 2.0, consumers are switched to use the WCN 2.0 global cluster as their primary storage. This marks the first major milestone in the migration process, where WCN 2.0 assumes production responsibility. At this point, both WCN 2.0 and WCN 1.0 clusters are fully operational. Consumers keep writing data to both clusters, allowing rollback if critical issues emerge.
+
+\subsection*{Phase 5 - Deployment of Regional Clusters}
+
+Regional clusters are deployed, and third party operators are invited to join them:
+
+\begin{itemize}
+    \item Request Shadowing: Writes and reads to the global cluster are also shadowed into regional clusters to validate their performance under real-world traffic.
+    \item Capacity Verification: Regional clusters are stress-tested to ensure they can handle peak workloads without degradation.
+\end{itemize}
+
+\subsection*{Phase 6 - Enabling Regionalized Storage}
+
+Once regional clusters demonstrate stability, consumers are updated to enable full use of regional clusters to improve storage latency and user experience.
+
+\subsection*{Phase 7 - Decommissioning WCN 1.0}
+
+The final stage of migration involves retiring the legacy system. Once all consumers have successfully switched to WCN 2.0, WCN 1.0 is fully decommissioned.
 
 \section{Updated Reward System}
 
