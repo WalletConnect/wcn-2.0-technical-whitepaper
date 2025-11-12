@@ -65,7 +65,7 @@ The WalletConnect Network serves as critical infrastructure for decentralized ap
 
 WCN 1.0 successfully demonstrated the viability of a federated key-value store using Raft consensus \cite{raft2014}. However, operational experience revealed several limitations: (1) global replication introduced unnecessary latency for region-specific workloads, (2) Raft's leader-based architecture created operational complexity at scale, and (3) the monolithic design made independent scaling of storage and coordination difficult.
 
-WCN 2.0 addresses these challenges through three architectural innovations: regionalized quorums for latency optimization, blockchain-based consensus for verifiable coordination, and separation of database and coordinator nodes for independent scaling.
+WCN 2.0 addresses these challenges through three architectural innovations: regionalized quorums for latency optimization, blockchain-based consensus for verifiable coordination, and separation of database and node for independent scaling.
 
 \subsection{Motivation}
 
@@ -73,7 +73,7 @@ The WalletConnect Protocol remains the primary application of the WalletConnect 
 
 Operational experience with WCN 1.0 also revealed challenges in managing Raft consensus at scale. While effective in a permissioned environment, Raft introduces operational complexity and does not naturally extend to a permissionless model. For workloads characterized by frequent reads and infrequent writes, a blockchain-based ledger provides a more natural coordination layer: it is tamper-evident, globally verifiable, and eliminates the need for a single trusted leader.
 
-Finally, the architectural split between WCN Database (storage) and WCN Node (coordinator) addresses limitations encountered in earlier deployments. Independent upgrade cycles and rolling deployments reduce operational risk and pave the way for elastic scaling of the storage layer without disrupting consensus. Together, these design changes bring WCN 2.0 closer to its long-term goal: a high-performance, decentralized, and permissionless infrastructure for real-time applications.
+Finally, the architectural split between WCN Database (storage) and WCN Node (node) addresses limitations encountered in earlier deployments. Independent upgrade cycles and rolling deployments reduce operational risk and pave the way for elastic scaling of the storage layer without disrupting consensus. Together, these design changes bring WCN 2.0 closer to its long-term goal: a high-performance, decentralized, and permissionless infrastructure for real-time applications.
 
 \subsection{Contributions}
 
@@ -81,7 +81,7 @@ The main contributions of WCN 2.0 are:
 \begin{itemize}
     \item \textbf{Regionalized quorums} that reduce latency by up to 60\% for geographically localized workloads while maintaining global consistency when needed
     \item \textbf{Blockchain-based consensus} replacing Raft, making WCN 2.0 the first distributed key-value store to use a blockchain ledger for coordination
-    \item \textbf{Coordinator-Database separation} enabling independent deployments, rolling upgrades, and elastic scaling of storage
+    \item \textbf{Node-Database separation} enabling independent deployments, rolling upgrades, and elastic scaling of storage
     \item \textbf{Enhanced decentralization} with over 20 independent operators across multiple regions, improving resilience and advancing toward permissionless operation
 \end{itemize}
 
@@ -152,49 +152,47 @@ The Smart-Contact logic is responsible for management of the following:
 
 \subsection{Latency Improvements}
 
-We evaluated WCN 2.0's latency characteristics using production traffic patterns over a 30-day period. Table~\ref{tab:latency} compares write latencies between WCN 1.0 (global replication) and WCN 2.0 (regionalized quorums).
+We evaluated WCN 2.0's latency characteristics using production traffic patterns over a 30-day period. Table~\ref{tab:latency} compares read and write latencies between WCN 1.0 (global replication) and WCN 2.0 (regionalized quorums).
 
 \begin{table}[h]
 \centering
-\caption{Write Latency Comparison (p50/p95/p99 in ms)}
+\caption{Latency Comparison (p95 in ms)}
 \label{tab:latency}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lccr@{}}
 \toprule
-Region & WCN 1.0 & WCN 2.0 & Improvement \\
+Region        & WCN 1.0 & WCN 2.0 & Improvement \\
 \midrule
-North America & 145/280/420 & 52/95/140 & 64\% (p50) \\
-Europe & 165/310/485 & 58/105/165 & 65\% (p50) \\
-Asia-Pacific & 180/340/520 & 65/115/180 & 64\% (p50) \\
-Cross-region & 220/410/650 & 215/405/640 & 2\% (p50) \\
+North America & 80      & 30      & 62.5\% \\
+Europe        & 100     & 30      & 70\%   \\
+Asia-Pacific  & 180     & 30      & 83\%   \\
+South America & 200     & 30      & 85\%   \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Regional writes show consistent improvement of 60-65\% in median latency across all regions. Cross-region writes (requiring global quorum) show minimal degradation, validating that the promotion mechanism correctly identifies and handles global state.
-
-Read latency remains unchanged from WCN 1.0, as both systems serve reads from local database replicas. The 99th percentile read latency averages 15ms across all regions.
+Regional read and writes show consistent improvement of 75\% in latency across all regions. Cross-region writes (requiring global quorum) show minimal degradation, validating that the promotion mechanism correctly identifies and handles global state.
 
 \subsection{Operational Benefits}
 
-The coordinator-database separation has significantly improved operational agility:
+The node-database separation has significantly improved operational agility:
 
 \begin{itemize}
-    \item \textbf{Rolling upgrades}: Database upgrades can be performed with zero downtime by rotating replicas out of service. Coordinator upgrades benefit from the blockchain's fault tolerance, allowing gradual rollout across operators.
-    \item \textbf{Deployment frequency}: Average deployment frequency increased from 2-3 per month in WCN 1.0 to 8-12 per month in WCN 2.0, reflecting reduced deployment risk.
-    \item \textbf{Incident recovery}: Mean time to recovery (MTTR) for database failures decreased from 8 minutes to 2 minutes due to faster failover to healthy replicas.
+    \item \textbf{Rolling upgrades}: Nodes attached to a database can be upgraded without downtime, as long as at least one node remains active and connected to that database.
+    \item \textbf{Database upgrades}: Database upgrades are rare and can be performed by entering maintenance mode. Only one deployment can be in maintenance mode at a given time.
+    \item \textbf{Resource Utilization}: The separation between nodes and databases allow for better tailored servers. Nodes and databases have very different needs.
 \end{itemize}
 
 \subsection{Security and Resilience}
 
 WCN 2.0's decentralized architecture provides several security advantages:
 
-\textbf{Byzantine fault tolerance}: The blockchain consensus tolerates up to $\frac{n-1}{3}$ Byzantine failures among coordinator nodes. With 20+ operators, the system can withstand 6+ malicious or faulty coordinators.
+\textbf{Byzantine fault tolerance}: The blockchain consensus tolerates up to $\frac{n-1}{3}$ Byzantine failures among nodes. With 20+ operators, the system can withstand 6+ malicious or faulty nodes.
 
 \textbf{Audit trail}: All state transitions are recorded in the blockchain with cryptographic proofs. This provides complete traceability for debugging and security analysis.
 
-\textbf{Geographic resilience}: With 8+ regions, the system remains operational during complete regional failures. Testing confirmed availability during simulated loss of any two regions simultaneously.
+\textbf{Geographic resilience}: With 4+ regions, the system remains operational during complete regional failures. Testing confirmed availability during simulated loss of any two regions simultaneously.
 
-\textbf{No single point of failure}: Unlike WCN 1.0's Raft leader, WCN 2.0 has no privileged nodes. Coordinator failures are handled transparently by the blockchain consensus.
+\textbf{No single point of failure}: Unlike WCN 1.0's Raft leader, WCN 2.0 has no privileged nodes. Node failures are handled transparently by the blockchain consensus.
 
 \section{Hardfork Migration Strategy}
 
@@ -391,7 +389,7 @@ Several directions for future development have been identified:
 
 \subsection{Autoscaling Storage Layer}
 
-The current coordinator-database separation enables elastic scaling of storage, but autoscaling is not yet implemented. Future work will develop policies for automatic database replica scaling based on load metrics, further improving operational efficiency.
+The current node-database separation enables elastic scaling of storage, but autoscaling is not yet implemented. Future work will develop policies for automatic database replica scaling based on load metrics, further improving operational efficiency.
 
 \subsection{Permissionless Operation}
 
@@ -424,7 +422,7 @@ The reward system and operational parameters will evolve based on community gove
 
 \section{Conclusion}
 
-WalletConnect Network 2.0 represents a significant evolution in distributed key-value store design, introducing three major innovations: regionalized quorums for latency optimization, blockchain-based consensus for verifiable coordination, and coordinator-database separation for operational agility.
+WalletConnect Network 2.0 represents a significant evolution in distributed key-value store design, introducing three major innovations: regionalized quorums for latency optimization, blockchain-based consensus for verifiable coordination, and node-database separation for operational agility.
 
 Production deployment demonstrates 60-65\% latency reduction for regional workloads while maintaining strong consistency guarantees. The expanded operator set across 20+ independent entities and 8+ geographic regions significantly improves resilience and advances WalletConnect's decentralization goals.
 
