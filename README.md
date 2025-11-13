@@ -1,6 +1,16 @@
-# Scientific Paper Template (Two-Column)
+# WalletConnect Network 2.0 Paper
 
-A professional two-column LaTeX template for scientific papers, technical whitepapers, and academic publications.
+This repository contains the academic paper **"WalletConnect Network 2.0: A Federated Key-Value Store with Blockchain Consensus"**, which presents the design and implementation of a novel distributed system architecture.
+
+## Overview
+
+WalletConnect Network 2.0 (WCN 2.0) is a federated, low-latency key-value store operated by over 20 independent node operators. The paper describes three major architectural innovations:
+
+- **Regionalized quorums** that reduce latency by 60-85% for geographically localized workloads
+- **Blockchain-based consensus** replacing traditional Raft, making WCN 2.0 the first distributed key-value store to leverage blockchain ledger for coordination
+- **Node-database separation** enabling independent deployments, rolling upgrades, and elastic scaling
+
+The system demonstrates significant performance improvements in production, with p95 latencies reduced from 80-200ms to a consistent 30ms across all regions. With 20+ independent operators across multiple geographic regions, WCN 2.0 advances toward fully permissionless decentralized infrastructure.
 
 ## Prerequisites
 
