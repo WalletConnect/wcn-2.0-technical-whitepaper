@@ -56,54 +56,25 @@
 \maketitle
 
 \begin{abstract}
-WalletConnect Network 2.0 (WCN 2.0) is a federated, low-latency key-value store operated by over 20 independent node operators. Building on WCN 1.0, the system introduces regionalized quorums to minimize latency for use cases that do not require global replication, while preserving global state when necessary. WCN 2.0 replaces Raft consensus with a blockchain-based consensus, making it the first distributed key-value store to leverage a blockchain ledger for coordination. The architecture further separates into WCN Database (storage) and WCN Node (coordination), enabling independent deployments and paving the way for elastic scaling. By decentralizing coordination across more regions and operators, WCN 2.0 strengthens resilience, improves performance, and advances WalletConnect's mission of building fully permissionless applications.
+WalletConnect Network 2.0 (WCN 2.0) is a federated, low-latency key-value store operated by over 20 independent node operators.
+Building on WCN 1.0, which is the world's first federated key-value store, the system introduces regionalized quorums to minimize latency for use cases that do not require global replication, while preserving global state when necessary. WCN 2.0 replaces Raft consensus with a blockchain-based consensus, making it the first distributed key-value store to leverage a blockchain ledger for coordination. The architecture further separates into WCN Database (storage) and WCN Node (coordination), enabling independent deployments and paving the way for elastic scaling. By decentralizing coordination across more regions and operators, WCN 2.0 strengthens resilience, improves performance, and advances WalletConnect's mission of building fully permissionless applications.
 \end{abstract}
 
-\section{Introduction}
+\section{Introduction \& Motivation}
 
-The WalletConnect Network serves as critical infrastructure for decentralized applications, providing a real-time communication layer for wallet-to-dapp interactions. As the ecosystem has grown to support millions of users across diverse geographic regions, the need for a more scalable, resilient, and performant infrastructure has become apparent.
+The WalletConnect Network serves as critical infrastructure for decentralized applications, providing a near real-time communication layer for wallet-to-dapp interactions. Most of the network traffic is regional, meaning that it does not require global replication of state. The main motivation for WCN 2.0 is to improve the latency of the network by introducing regionalized quorums.
 
-WCN 1.0 successfully demonstrated the viability of a federated key-value store using Raft consensus \cite{raft2014}. However, operational experience revealed several limitations: (1) global replication introduced unnecessary latency for region-specific workloads, (2) Raft's leader-based architecture created operational complexity at scale, and (3) the monolithic design made independent scaling of storage and coordination difficult.
+WCN 1.0 successfully demonstrated the viability of a federated key-value store using Raft consensus \cite{wcn1}. However, operational experience revealed several limitations: (1) global replication introduced unnecessary latency for region-specific workloads, (2) Raft's leader-based architecture created operational complexity at scale, and (3) the monolithic design made independent scaling of storage and coordination difficult.
 
 WCN 2.0 addresses these challenges through three architectural innovations: regionalized quorums for latency optimization, blockchain-based consensus for verifiable coordination, and separation of database and node for independent scaling.
 
-\subsection{Motivation}
-
-The WalletConnect Protocol remains the primary application of the WalletConnect Network, alongside Smart Sessions. In practice, most protocol workloads do not require global replication of state; rather, they benefit from regionalized quorums that can serve client requests with lower round-trip latency while still preserving the option of global coordination when required.
-
-Operational experience with WCN 1.0 also revealed challenges in managing Raft consensus at scale. While effective in a permissioned environment, Raft introduces operational complexity and does not naturally extend to a permissionless model. For workloads characterized by frequent reads and infrequent writes, a blockchain-based ledger provides a more natural coordination layer: it is tamper-evident, globally verifiable, and eliminates the need for a single trusted leader.
-
-Finally, the architectural split between WCN Database (storage) and WCN Node (node) addresses limitations encountered in earlier deployments. Independent upgrade cycles and rolling deployments reduce operational risk and pave the way for elastic scaling of the storage layer without disrupting consensus. Together, these design changes bring WCN 2.0 closer to its long-term goal: a high-performance, decentralized, and permissionless infrastructure for real-time applications.
-
-\subsection{Contributions}
-
-The main contributions of WCN 2.0 are:
+The main improvements of WCN 2.0 are:
 \begin{itemize}
     \item \textbf{Regionalized quorums} that reduce latency by up to 60\% for geographically localized workloads while maintaining global consistency when needed
     \item \textbf{Blockchain-based consensus} replacing Raft, making WCN 2.0 the first distributed key-value store to use a blockchain ledger for coordination
     \item \textbf{Node-Database separation} enabling independent deployments, rolling upgrades, and elastic scaling of storage
     \item \textbf{Enhanced decentralization} with over 20 independent operators across multiple regions, improving resilience and advancing toward permissionless operation
 \end{itemize}
-
-\section{Background and Related Work}
-
-\subsection{Distributed Key-Value Stores}
-
-Distributed key-value stores form the backbone of modern cloud infrastructure. Systems like Amazon DynamoDB \cite{dynamodb2007}, Apache Cassandra \cite{cassandra2010}, and etcd \cite{etcd2013} have demonstrated various approaches to achieving consistency, availability, and partition tolerance. Most production systems rely on consensus protocols like Paxos \cite{paxos1998} or Raft \cite{raft2014} for coordination.
-
-WCN 1.0 followed this established pattern, using Raft consensus across a federated set of operators. While Raft provides strong consistency guarantees and is well-understood operationally, it requires a stable leader and does not naturally accommodate permissionless participation—both limitations that motivated the redesign in WCN 2.0.
-
-\subsection{Blockchain as Coordination Layer}
-
-Blockchain systems have traditionally been associated with cryptocurrency applications, but recent work has explored their use as coordination mechanisms for distributed systems \cite{fabric2018}. The append-only, cryptographically verifiable nature of blockchain ledgers provides natural advantages for audit trails and Byzantine fault tolerance.
-
-To our knowledge, WCN 2.0 represents the first production deployment of a distributed key-value store that uses a blockchain ledger as its primary coordination mechanism. This approach trades some throughput for verifiability and eliminates single points of failure inherent in leader-based consensus.
-
-\subsection{Geo-Distributed Systems}
-
-Geo-distributed databases like Google Spanner \cite{spanner2012} and CockroachDB \cite{cockroachdb2020} have explored various strategies for managing latency across regions. These systems typically use techniques like quorum-based replication, synchronized clocks, or explicit user control over data placement.
-
-WCN 2.0's approach to regionalized quorums differs by making regional vs. global replication an implicit decision based on workload patterns rather than explicit user configuration. This design choice reflects the specific requirements of the WalletConnect Protocol, where most interactions are inherently regional but occasional global coordination is necessary.
 
 \section{Architecture}
 
@@ -403,12 +374,12 @@ While WCN 2.0's blockchain consensus is compatible with permissionless operation
 
 \subsection{Ecosystem Use Cases}
 
-Beyond WalletConnect Protocol and Smart Sessions, WCN 2.0's architecture may serve other decentralized applications requiring low-latency, verifiable state coordination. Potential use cases include:
+Beyond WalletConnect Protocol and Smart Sessions, WCN 2.0's architecture may serve other decentralized applications requiring low-latency, Key Value stores. Potential use cases include:
 \begin{itemize}
+    \item Storage of encrypted end-user information similar to a cross-wallet iCloud
     \item Decentralized identity systems
     \item Cross-chain messaging protocols
     \item Real-time collaborative applications
-    \item IoT device coordination
 \end{itemize}
 
 \subsection{Governance Updates}
@@ -417,24 +388,23 @@ The reward system and operational parameters will evolve based on community gove
 \begin{itemize}
     \item On-chain voting for parameter adjustments
     \item Operator councils for technical decision-making
-    \item Transparent metrics dashboards for community oversight
+    \item Transparent metrics dashboards for com\-munity over\-sight
 \end{itemize}
 
 \section{Conclusion}
 
-WalletConnect Network 2.0 represents a significant evolution in distributed key-value store design, introducing three major innovations: regionalized quorums for latency optimization, blockchain-based consensus for verifiable coordination, and node-database separation for operational agility.
+WalletConnect Network 2.0 represents a significant evolution in distributed key-value store design, introducing three major innovations: regionalized quorums for latency optimization, blockchain-based consensus for coordination, and node-database separation for operational agility.
 
-Production deployment demonstrates 60-65\% latency reduction for regional workloads while maintaining strong consistency guarantees. The expanded operator set across 20+ independent entities and 8+ geographic regions significantly improves resilience and advances WalletConnect's decentralization goals.
+Production deployment demonstrates 60-65\% latency re\-duction for regional workloads while main\-taining strong consistency guarantees. The expanded operator set across 20+ independent entities and 8+ geographic regions significantly improves resilience and advances WalletConnect's decentralization goals.
 
 By replacing traditional consensus mechanisms with blockchain-based coordination, WCN 2.0 establishes a new architectural pattern for distributed systems that require both high performance and verifiable state management. The system serves as foundational infrastructure for WalletConnect's mission to build fully permissionless, globally accessible decentralized applications.
 
-As the first production distributed key-value store to leverage blockchain for consensus, WCN 2.0 demonstrates that blockchain technology extends beyond cryptocurrency applications to solve fundamental challenges in distributed systems coordination.
+As the first production distributed key-value store, WCN 2.0 demonstrates that blockchain technology extends beyond cryptocurrency applications to solve fundamental challenges in distributed systems coordination.
 
 \section*{Acknowledgments}
 
 We thank the WalletConnect community and the 20+ independent node operators who participate in running WCN 2.0. Special thanks to the engineering teams who contributed to the design, implementation, and testing of this system.
 
-% Bibliography
 \bibliographystyle{plain}
 \bibliography{references}
 
